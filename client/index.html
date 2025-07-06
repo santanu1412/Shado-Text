@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shado Text - E2EE Proof of Concept</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Shado Text</h1>
+        </header>
+        <div id="registration-view">
+            <h2>Register a Username</h2>
+            <input type="text" id="username-input" placeholder="Enter your username (e.g., Santanu)" />
+            <button id="register-btn">Register and Generate Keys</button>
+        </div>
+
+        <div id="chat-view" class="hidden">
+            <div class="sidebar">
+                <h3>Logged in as: <span id="current-user"></span></h3>
+                <h4>Online Users</h4>
+                <ul id="user-list"></ul>
+            </div>
+            <div class="chat-area">
+                <div class="chat-header">
+                    <h3>Chat with <span id="chat-partner">Nobody</span></h3>
+                </div>
+                <div id="messages">
+                    <div class="status-message">Select a user to start a secure chat.</div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="message-input" placeholder="Message is AES encrypted..." disabled />
+                    <button id="send-btn" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    
+    <script src="client.js"></script>
+</body>
+</html>
