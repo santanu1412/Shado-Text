@@ -4,45 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shado Text - E2EE Proof of Concept</title>
+    
+    <!-- Google Font: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <!-- Your Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Shado Text</h1>
-        </header>
+        
+        <!-- View 1: Registration -->
         <div id="registration-view">
-            <h2>Register a Username</h2>
-            <input type="text" id="username-input" placeholder="Enter your username (e.g., Santanu)" />
-            <button id="register-btn">Register and Generate Keys</button>
+            <div class="card">
+                <header class="card-header">
+                    <h1><i class="fa-solid fa-user-secret"></i> Shado Text</h1>
+                    <p>E2EE Proof of Concept</p>
+                </header>
+                <main class="card-body">
+                    <h2>Register a Username</h2>
+                    <input type="text" id="username-input" placeholder="Enter your username (e.g., Santanu)" />
+                    <button id="register-btn">Register and Generate Keys</button>
+                </main>
+            </div>
         </div>
 
+        <!-- View 2: Main Chat Application -->
         <div id="chat-view" class="hidden">
             <div class="sidebar">
-                <h3>Logged in as: <span id="current-user"></span></h3>
-                <h4>Online Users</h4>
-                <ul id="user-list"></ul>
+                <div class="sidebar-header">
+                    <h3>Logged in as:</h3>
+                    <span id="current-user"></span>
+                </div>
+                <div class="user-list-container">
+                    <h4><i class="fa-solid fa-users"></i> Online Users</h4>
+                    <ul id="user-list">
+                        <!-- Example list item:
+                        <li class="active">
+                            <i class="fa-solid fa-circle"></i>
+                            <span>OtherUser</span>
+                        </li> 
+                        -->
+                    </ul>
+                </div>
             </div>
+
             <div class="chat-area">
                 <div class="chat-header">
                     <h3>Chat with <span id="chat-partner">Nobody</span></h3>
                 </div>
+                
                 <div id="messages">
+                    <!-- Example messages to show styling -->
                     <div class="status-message">Select a user to start a secure chat.</div>
+                    <!-- 
+                    <div class="message received">
+                        <span>Hey, this is a received message!</span>
+                        <small>10:58 AM</small>
+                    </div>
+                    <div class="message sent">
+                        <span>This is a sent message. The encryption is working!</span>
+                        <small>10:59 AM</small>
+                    </div>
+                    -->
                 </div>
-                <div class="chat-input">
+
+                <div class="chat-input-area">
                     <input type="text" id="message-input" placeholder="Message is AES encrypted..." disabled />
-                    <button id="send-btn" disabled>Send</button>
+                    <button id="send-btn" disabled><i class="fa-solid fa-paper-plane"></i></button>
                 </div>
             </div>
         </div>
         
     </div>
 
+    <!-- Your Scripts (Unchanged) -->
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
-    
     <script src="client.js"></script>
 </body>
 </html>
