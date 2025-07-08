@@ -1,4 +1,4 @@
-// client/client.js (Corrected Version)
+// client/client.js (Modified to include Chat History)
 
 document.addEventListener('DOMContentLoaded', () => {
     const socket = io();
@@ -23,20 +23,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUser = '';
     let rsaKeys = {};
     let activeChatPartner = '';
-    // Store AES keys for each chat partner
     const sessionKeys = {}; // { username: 'aes_key_string' }
+    
+    // --- MODIFICATION 1: The "Notebook" for all chat histories ---
+    const chatHistories = {}; // { username: [ { sender, message, type }, ... ] }
 
     // --- UTILITY FUNCTIONS ---
+
     function displayMessage(sender, message, type) {
+        // Remove status message if it's the first message in a chat
+        const statusMessage = messagesDiv.querySelector('.status-message');
+        if (statusMessage) statusMessage.remove();
+
         const messageElement = document.createElement('div');
-        messageElement.classList.add('message', type); // 'sent' or 'received'
+        // The original HTML structure uses .sent/.received for styling, let's keep that.
+        const messageType = (sender === currentUser) ? 'sent' : 'received';
+        messageElement.classList.add('message', messageType);
 
-        const senderElement = document.createElement('div');
-        senderElement.classList.add('message-sender');
-        senderElement.textContent = sender;
-
-        messageElement.appendChild(senderElement);
-        messageElement.append(message);
+        // Using the new HTML structure for messages with timestamp
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageElement.innerHTML = `<span>${message}</span><small>${time}</small>`;
+        
         messagesDiv.appendChild(messageElement);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -45,42 +52,28 @@ document.addEventListener('DOMContentLoaded', () => {
         messagesDiv.innerHTML = `<div class="status-message">${message}</div>`;
     }
 
-    // --- CRYPTOGRAPHY FUNCTIONS ---
+    // --- CRYPTOGRAPHY FUNCTIONS (Your functions are perfect, no changes here) ---
 
-    // Generate a 2048-bit RSA key pair
     function generateRSAKeys() {
         const crypt = new JSEncrypt({ default_key_size: 2048 });
-        return {
-            privateKey: crypt.getPrivateKey(),
-            publicKey: crypt.getPublicKey()
-        };
+        return { privateKey: crypt.getPrivateKey(), publicKey: crypt.getPublicKey() };
     }
-
-    // Generate a random 256-bit AES key
     function generateAESKey() {
-        return CryptoJS.lib.WordArray.random(32).toString(); // 32 bytes = 256 bits
+        return CryptoJS.lib.WordArray.random(32).toString();
     }
-
-    // Encrypt text with RSA public key
     function rsaEncrypt(text, publicKey) {
         const crypt = new JSEncrypt();
         crypt.setPublicKey(publicKey);
         return crypt.encrypt(text);
     }
-
-    // Decrypt text with RSA private key
     function rsaDecrypt(encryptedText, privateKey) {
         const crypt = new JSEncrypt();
         crypt.setPrivateKey(privateKey);
         return crypt.decrypt(encryptedText);
     }
-
-    // Encrypt text with AES key
     function aesEncrypt(text, key) {
         return CryptoJS.AES.encrypt(text, key).toString();
     }
-
-    // Decrypt text with AES key
     function aesDecrypt(encryptedText, key) {
         const bytes = CryptoJS.AES.decrypt(encryptedText, key);
         return bytes.toString(CryptoJS.enc.Utf8);
@@ -88,24 +81,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
 
-    // Register user
     registerBtn.addEventListener('click', () => {
         const username = usernameInput.value.trim();
         if (username) {
             currentUser = username;
             rsaKeys = generateRSAKeys();
-            
             socket.emit('register', { username: currentUser, publicKey: rsaKeys.publicKey });
-
-            // ** FIX IS HERE: Use classList to control visibility **
             registrationView.classList.add('hidden');
             chatView.classList.remove('hidden'); 
-            
+            chatView.style.display = 'flex'; // Ensure flex layout is applied
             currentUserSpan.textContent = currentUser;
         }
     });
 
-    // Send a message
     sendBtn.addEventListener('click', () => {
         const message = messageInput.value.trim();
         const aesKey = sessionKeys[activeChatPartner];
@@ -114,16 +102,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const encryptedMessage = aesEncrypt(message, aesKey);
             socket.emit('sendMessage', { to: activeChatPartner, encryptedMessage });
 
+            // Display message locally and SAVE to history
             displayMessage(currentUser, message, 'sent');
+            chatHistories[activeChatPartner].push({ sender: currentUser, message, type: 'sent' });
+
             messageInput.value = '';
         }
     });
     
-    // Allow sending with Enter key
     messageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            sendBtn.click();
-        }
+        if (e.key === 'Enter') sendBtn.click();
     });
 
     // --- SOCKET.IO EVENT HANDLERS ---
@@ -133,18 +121,49 @@ document.addEventListener('DOMContentLoaded', () => {
         users.forEach(user => {
             if (user !== currentUser) {
                 const li = document.createElement('li');
-                li.textContent = user;
-                li.addEventListener('click', async () => {
-                    activeChatPartner = user;
-                    
+                // MODIFICATION: Add a data attribute for easy selection
+                li.dataset.username = user;
+                // Using the icon/span structure from the new HTML
+                li.innerHTML = `<i class="fa-solid fa-circle"></i><span>${user}</span><span class="notification-badge hidden"></span>`;
+
+                li.addEventListener('click', () => {
+                    const newPartner = user;
+                    // --- MODIFICATION 2: This is the core logic for switching chats ---
+                    if (newPartner === activeChatPartner) return; // Don't re-load the same chat
+
+                    activeChatPartner = newPartner;
+
+                    // Update UI
                     document.querySelectorAll('#user-list li').forEach(item => item.classList.remove('active'));
                     li.classList.add('active');
                     chatPartnerSpan.textContent = user;
-                    messageInput.disabled = false;
-                    sendBtn.disabled = false;
                     
-                    displayStatus(`Starting secure chat with ${user}. Generating session key...`);
-                    socket.emit('requestPublicKey', user);
+                    // Hide notification badge on click
+                    li.querySelector('.notification-badge').classList.add('hidden');
+
+                    // Clear previous chat and load history
+                    messagesDiv.innerHTML = '';
+                    if (chatHistories[activeChatPartner] && chatHistories[activeChatPartner].length > 0) {
+                        // Load and display all messages from history
+                        chatHistories[activeChatPartner].forEach(msg => {
+                            displayMessage(msg.sender, msg.message, msg.type);
+                        });
+                    } else {
+                        // It's a new chat, initialize history
+                        chatHistories[activeChatPartner] = [];
+                        displayStatus(`This is the beginning of your secure chat with ${user}.`);
+                    }
+
+                    // Establish secure session if it doesn't exist
+                    if (!sessionKeys[activeChatPartner]) {
+                        displayStatus(`Starting secure chat with ${user}. Generating session key...`);
+                        socket.emit('requestPublicKey', user);
+                    } else {
+                         // Session already exists, enable input
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.focus();
+                    }
                 });
                 userList.appendChild(li);
             }
@@ -155,12 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (username === activeChatPartner) {
             const aesKey = generateAESKey();
             sessionKeys[username] = aesKey;
-            
             const encryptedKey = rsaEncrypt(aesKey, publicKey);
-            
             socket.emit('sendEncryptedKey', { to: username, encryptedKey });
             
-            displayStatus(`Secure session with ${username} established. You can now chat.`);
+            // Now that keys are exchanged, enable input
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            messageInput.focus();
         }
     });
 
@@ -168,21 +188,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const aesKey = rsaDecrypt(encryptedKey, rsaKeys.privateKey);
         if (aesKey) {
             sessionKeys[from] = aesKey;
-            activeChatPartner = from;
-            
-            document.querySelectorAll('#user-list li').forEach(item => {
-                item.classList.remove('active');
-                if(item.textContent === from) {
-                    item.classList.add('active');
-                }
-            });
-            chatPartnerSpan.textContent = from;
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-
-            displayStatus(`Secure session with ${from} established. You can now chat.`);
-        } else {
-            displayStatus(`Could not establish secure session with ${from}.`);
+            // If the user who sent the key is our active partner, enable chat
+            if (from === activeChatPartner) {
+                displayStatus(`Secure session with ${from} established. You can now chat.`);
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
         }
     });
 
@@ -190,10 +202,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const aesKey = sessionKeys[from];
         if (aesKey) {
             const decryptedMessage = aesDecrypt(encryptedMessage, aesKey);
+
+            // --- MODIFICATION 3: Smartly handle incoming messages ---
+
+            // Ensure history exists for this user
+            if (!chatHistories[from]) {
+                chatHistories[from] = [];
+            }
+            // Save the received message to their history
+            chatHistories[from].push({ sender: from, message: decryptedMessage, type: 'received' });
+
             if (from === activeChatPartner) {
+                // If we are actively chatting with them, display it immediately
                 displayMessage(from, decryptedMessage, 'received');
             } else {
-                console.log(`Received message from ${from}, but they are not the active chat.`);
+                // If it's a background chat, show a notification badge
+                const userLi = document.querySelector(`#user-list li[data-username='${from}']`);
+                if (userLi) {
+                    const badge = userLi.querySelector('.notification-badge');
+                    badge.classList.remove('hidden');
+                    // Optional: update badge count
+                    // badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+                }
             }
         }
     });
