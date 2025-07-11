@@ -5,15 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shado Text - E2EE Proof of Concept</title>
     
-    <!-- Google Font: Poppins -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     
-    <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
-    <!-- Your Stylesheet -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -34,7 +31,6 @@
             </div>
         </div>
 
-        <!-- View 2: Main Chat Application -->
         <div id="chat-view" class="hidden">
             <div class="sidebar">
                 <div class="sidebar-header">
@@ -44,12 +40,6 @@
                 <div class="user-list-container">
                     <h4><i class="fa-solid fa-users"></i> Online Users</h4>
                     <ul id="user-list">
-                        <!-- Example list item:
-                        <li class="active">
-                            <i class="fa-solid fa-circle"></i>
-                            <span>OtherUser</span>
-                        </li> 
-                        -->
                     </ul>
                 </div>
             </div>
@@ -60,18 +50,7 @@
                 </div>
                 
                 <div id="messages">
-                    <!-- Example messages to show styling -->
                     <div class="status-message">Select a user to start a secure chat.</div>
-                    <!-- 
-                    <div class="message received">
-                        <span>Hey, this is a received message!</span>
-                        <small>10:58 AM</small>
-                    </div>
-                    <div class="message sent">
-                        <span>This is a sent message. The encryption is working!</span>
-                        <small>10:59 AM</small>
-                    </div>
-                    -->
                 </div>
 
                 <div class="chat-input-area">
@@ -83,7 +62,7 @@
         
     </div>
 
-    <!-- Your Scripts (Unchanged) -->
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>

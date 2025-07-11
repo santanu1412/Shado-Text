@@ -25,22 +25,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeChatPartner = '';
     const sessionKeys = {}; // { username: 'aes_key_string' }
     
-    // --- MODIFICATION 1: The "Notebook" for all chat histories ---
-    const chatHistories = {}; // { username: [ { sender, message, type }, ... ] }
 
-    // --- UTILITY FUNCTIONS ---
+    const chatHistories = {}; 
+
 
     function displayMessage(sender, message, type) {
-        // Remove status message if it's the first message in a chat
         const statusMessage = messagesDiv.querySelector('.status-message');
         if (statusMessage) statusMessage.remove();
 
         const messageElement = document.createElement('div');
-        // The original HTML structure uses .sent/.received for styling, let's keep that.
         const messageType = (sender === currentUser) ? 'sent' : 'received';
         messageElement.classList.add('message', messageType);
-
-        // Using the new HTML structure for messages with timestamp
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         messageElement.innerHTML = `<span>${message}</span><small>${time}</small>`;
         
@@ -51,8 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayStatus(message) {
         messagesDiv.innerHTML = `<div class="status-message">${message}</div>`;
     }
-
-    // --- CRYPTOGRAPHY FUNCTIONS (Your functions are perfect, no changes here) ---
 
     function generateRSAKeys() {
         const crypt = new JSEncrypt({ default_key_size: 2048 });
@@ -78,9 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const bytes = CryptoJS.AES.decrypt(encryptedText, key);
         return bytes.toString(CryptoJS.enc.Utf8);
     }
-
-    // --- EVENT LISTENERS ---
-
     registerBtn.addEventListener('click', () => {
         const username = usernameInput.value.trim();
         if (username) {
@@ -101,8 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (message && activeChatPartner && aesKey) {
             const encryptedMessage = aesEncrypt(message, aesKey);
             socket.emit('sendMessage', { to: activeChatPartner, encryptedMessage });
-
-            // Display message locally and SAVE to history
             displayMessage(currentUser, message, 'sent');
             chatHistories[activeChatPartner].push({ sender: currentUser, message, type: 'sent' });
 
@@ -121,14 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
         users.forEach(user => {
             if (user !== currentUser) {
                 const li = document.createElement('li');
-                // MODIFICATION: Add a data attribute for easy selection
                 li.dataset.username = user;
                 // Using the icon/span structure from the new HTML
                 li.innerHTML = `<i class="fa-solid fa-circle"></i><span>${user}</span><span class="notification-badge hidden"></span>`;
 
                 li.addEventListener('click', () => {
                     const newPartner = user;
-                    // --- MODIFICATION 2: This is the core logic for switching chats ---
                     if (newPartner === activeChatPartner) return; // Don't re-load the same chat
 
                     activeChatPartner = newPartner;
@@ -149,17 +135,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             displayMessage(msg.sender, msg.message, msg.type);
                         });
                     } else {
-                        // It's a new chat, initialize history
                         chatHistories[activeChatPartner] = [];
                         displayStatus(`This is the beginning of your secure chat with ${user}.`);
                     }
-
-                    // Establish secure session if it doesn't exist
                     if (!sessionKeys[activeChatPartner]) {
                         displayStatus(`Starting secure chat with ${user}. Generating session key...`);
                         socket.emit('requestPublicKey', user);
                     } else {
-                         // Session already exists, enable input
                         messageInput.disabled = false;
                         sendBtn.disabled = false;
                         messageInput.focus();
@@ -176,8 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionKeys[username] = aesKey;
             const encryptedKey = rsaEncrypt(aesKey, publicKey);
             socket.emit('sendEncryptedKey', { to: username, encryptedKey });
-            
-            // Now that keys are exchanged, enable input
             messageInput.disabled = false;
             sendBtn.disabled = false;
             messageInput.focus();
@@ -188,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const aesKey = rsaDecrypt(encryptedKey, rsaKeys.privateKey);
         if (aesKey) {
             sessionKeys[from] = aesKey;
-            // If the user who sent the key is our active partner, enable chat
             if (from === activeChatPartner) {
                 displayStatus(`Secure session with ${from} established. You can now chat.`);
                 messageInput.disabled = false;
@@ -202,27 +181,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const aesKey = sessionKeys[from];
         if (aesKey) {
             const decryptedMessage = aesDecrypt(encryptedMessage, aesKey);
-
-            // --- MODIFICATION 3: Smartly handle incoming messages ---
-
             // Ensure history exists for this user
             if (!chatHistories[from]) {
                 chatHistories[from] = [];
             }
-            // Save the received message to their history
             chatHistories[from].push({ sender: from, message: decryptedMessage, type: 'received' });
 
             if (from === activeChatPartner) {
-                // If we are actively chatting with them, display it immediately
                 displayMessage(from, decryptedMessage, 'received');
             } else {
-                // If it's a background chat, show a notification badge
                 const userLi = document.querySelector(`#user-list li[data-username='${from}']`);
                 if (userLi) {
                     const badge = userLi.querySelector('.notification-badge');
                     badge.classList.remove('hidden');
-                    // Optional: update badge count
-                    // badge.textContent = (parseInt(badge.textContent) || 0) + 1;
                 }
             }
         }
